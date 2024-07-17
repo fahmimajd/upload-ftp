@@ -7,9 +7,9 @@ const fs = require('fs');
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-const FTP_HOST = '10.11.10.14';
-const FTP_USER = 'fahmi';
-const FTP_PASSWORD = 'halifmajid';
+const FTP_HOST = 'host';
+const FTP_USER = 'user';
+const FTP_PASSWORD = 'pass';
 
 // Middleware untuk melayani file statis
 app.use(express.static('public'));
