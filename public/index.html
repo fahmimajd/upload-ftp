@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload File</title>
     <link href="styles.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
@@ -22,7 +23,13 @@
                 <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Upload</button>
             </div>
         </form>
-        <div id="uploadMessage" class="mt-4 text-center"></div>
+    </div>
+
+    <div id="notification" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+            <p id="notificationMessage" class="mb-4 text-lg font-semibold"></p>
+            <button id="closeButton" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700">OK</button>
+        </div>
     </div>
 
     <script>
@@ -40,13 +47,27 @@
                     body: formData
                 });
                 const result = await response.json();
-                document.getElementById('uploadMessage').textContent = result.message;
-                document.getElementById('uploadMessage').className = response.ok ? 'text-green-500' : 'text-red-500';
+                
+                if (response.ok) {
+                    showNotification('File uploaded successfully');
+                } else {
+                    showNotification(`Upload failed: ${result.message}`);
+                }
             } catch (error) {
-                document.getElementById('uploadMessage').textContent = 'Upload failed';
-                document.getElementById('uploadMessage').className = 'text-red-500';
+                showNotification('Upload failed: Network error');
             }
         });
+
+        function showNotification(message) {
+            document.getElementById('notificationMessage').textContent = message;
+            const notification = document.getElementById('notification');
+            notification.classList.remove('hidden');
+
+            document.getElementById('closeButton').addEventListener('click', () => {
+                notification.classList.add('hidden');
+                location.reload();
+            });
+        }
     </script>
 </body>
 </html>
