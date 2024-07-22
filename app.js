@@ -3,13 +3,14 @@ const multer = require('multer');
 const ftp = require('ftp');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-const FTP_HOST = 'host';
-const FTP_USER = 'user';
-const FTP_PASSWORD = 'pass';
+const FTP_HOST = 'ftp.yourserver.com';
+const FTP_USER = 'username';
+const FTP_PASSWORD = 'password';
 
 // Middleware untuk melayani file statis
 app.use(express.static('public'));
@@ -23,7 +24,7 @@ function getFormattedDate() {
     return `${day}${month}${year}`;
 }
 
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/upload', upload.single('file'), async (req, res) => {
     const file = req.file;
     const folderName = req.body.folderName || '';
 
@@ -34,34 +35,52 @@ app.post('/upload', upload.single('file'), (req, res) => {
     const datePrefix = getFormattedDate();
     const fullFolderName = `${datePrefix}-${folderName}`;
 
-    const ftpClient = new ftp();
-    ftpClient.on('ready', () => {
-        ftpClient.mkdir(fullFolderName, true, (err) => {
-            if (err && err.code !== 550) { // 550: Folder already exists
-                return res.status(500).send({ message: 'FTP folder creation failed', error: err });
-            }
+    try {
+        const outputPath = `uploads/compressed-${file.originalname}`;
 
-            const remotePath = path.posix.join(fullFolderName, file.originalname);
-            ftpClient.put(file.path, remotePath, (err) => {
-                if (err) {
-                    return res.status(500).send({ message: 'FTP upload failed', error: err });
+        // Compress the file using sharp (only for images)
+        await sharp(file.path)
+            .resize({ width: 1000 }) // Example resizing
+            .toFormat('jpeg', { quality: 80 }) // Adjust quality
+            .toFile(outputPath);
+
+        // Check file size and ensure it's below 1MB
+        const stats = fs.statSync(outputPath);
+        if (stats.size > 1 * 1024 * 1024) {
+            return res.status(400).send({ message: 'File too large to compress under 1MB' });
+        }
+
+        const ftpClient = new ftp();
+        ftpClient.on('ready', () => {
+            ftpClient.mkdir(fullFolderName, true, (err) => {
+                if (err && err.code !== 550) {
+                    return res.status(500).send({ message: 'FTP folder creation failed', error: err });
                 }
 
-                fs.unlink(file.path, (unlinkErr) => {
-                    if (unlinkErr) console.error('Failed to delete local file:', unlinkErr);
-                });
+                const remotePath = path.posix.join(fullFolderName, file.originalname);
+                ftpClient.put(outputPath, remotePath, (err) => {
+                    if (err) {
+                        return res.status(500).send({ message: 'FTP upload failed', error: err });
+                    }
 
-                ftpClient.end();
-                res.send({ message: 'File uploaded successfully' });
+                    fs.unlink(file.path, () => {});
+                    fs.unlink(outputPath, () => {});
+
+                    ftpClient.end();
+                    res.send({ message: 'File uploaded successfully' });
+                });
             });
         });
-    });
 
-    ftpClient.connect({
-        host: FTP_HOST,
-        user: FTP_USER,
-        password: FTP_PASSWORD
-    });
+        ftpClient.connect({
+            host: FTP_HOST,
+            user: FTP_USER,
+            password: FTP_PASSWORD
+        });
+
+    } catch (error) {
+        res.status(500).send({ message: 'Error processing file', error });
+    }
 });
 
 app.listen(3000, () => {
