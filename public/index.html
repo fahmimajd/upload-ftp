@@ -6,8 +6,28 @@
     <title>Upload File</title>
     <link href="styles.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none; }
+        .spinner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div id="loading" class="hidden spinner">
+        <!-- Spinner HTML from loading.io -->
+        <div class="lds-atom"><div></div><div></div><div></div></div>
+    </div>
+
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 class="text-2xl font-bold mb-6 text-center">Upload File</h1>
         <form id="uploadForm" class="space-y-4">
@@ -35,6 +55,9 @@
     <script>
         document.getElementById('uploadForm').addEventListener('submit', async (event) => {
             event.preventDefault();
+            const loading = document.getElementById('loading');
+            loading.classList.remove('hidden');
+
             const fileInput = document.getElementById('file');
             const folderName = document.getElementById('uploadFolder').value;
             const formData = new FormData();
@@ -48,12 +71,15 @@
                 });
                 const result = await response.json();
                 
+                loading.classList.add('hidden');
+                
                 if (response.ok) {
                     showNotification('File uploaded successfully');
                 } else {
                     showNotification(`Upload failed: ${result.message}`);
                 }
             } catch (error) {
+                loading.classList.add('hidden');
                 showNotification('Upload failed: Network error');
             }
         });

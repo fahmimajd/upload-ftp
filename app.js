@@ -8,9 +8,9 @@ const sharp = require('sharp');
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
-const FTP_HOST = 'ftp.yourserver.com';
-const FTP_USER = 'username';
-const FTP_PASSWORD = 'password';
+const FTP_HOST = '10.11.10.14';
+const FTP_USER = 'capil';
+const FTP_PASSWORD = 'capil';
 
 // Middleware untuk melayani file statis
 app.use(express.static('public'));
